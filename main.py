@@ -16,7 +16,7 @@ CHECK_INTERVAL = 180 if not FAST_MODE else 1  # in seconds
 RISK_PERCENTAGE = 1.0
 MIN_RR_RATIO = 2.0
 TIMEFRAMES = ["15m", "1h", "4h"]
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]  # Binance US symbols
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "FARTUSDT", "PEPEUSDT"]  # Expanded symbols list
 RUN_BACKTEST = "--backtest" in sys.argv
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -139,26 +139,7 @@ def detect_tct_setup(df):
 
     return setups
 
-async def run_backtest():
-    print("\n===== TCT Backtest Mode (7 Days Historical Data) =====")
-    for symbol in SYMBOLS:
-        df = fetch_binance_ohlcv(symbol, interval="1h", limit=168)
-        if df is not None:
-            df = identify_ranges(df)
-            valid_setups = []
-            for i in range(20, len(df)):
-                sliced = df.iloc[:i]
-                setups = detect_tct_setup(sliced)
-                valid_setups.extend(setups)
-            print(f"\n🔍 {symbol} - {len(valid_setups)} valid setups")
-            for s in valid_setups[-5:]:
-                print(f"{s['type']} {s['direction'].upper()} | RR: {s['rr']:.2f}:1 | Confidence: {s['confidence']*100:.0f}% | Leverage: {s['leverage']}x | {s['time'].strftime('%m-%d %H:%M')}")
-
 async def run():
-    if RUN_BACKTEST:
-        await run_backtest()
-        return
-
     print("Running TCT Alert Bot with Full Lecture Logic + Model Detection + Binance US Live Prices...")
     active_alerts = {}
     while True:
