@@ -11,7 +11,8 @@ import sys
 # === CONFIGURATION ===
 TELEGRAM_BOT_TOKEN = "8199048602:AAEyxtzEB_5kDkwSbo0xnnO4GB-W8MHWkdA"
 TELEGRAM_CHAT_ID = "5747777199"
-CHECK_INTERVAL = 180  # in seconds
+FAST_MODE = False
+CHECK_INTERVAL = 180 if not FAST_MODE else 1  # in seconds
 RISK_PERCENTAGE = 1.0
 MIN_RR_RATIO = 2.0
 TIMEFRAMES = ["15m", "1h", "4h"]
@@ -20,7 +21,15 @@ RUN_BACKTEST = "--backtest" in sys.argv
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
-# === FUNCTIONS ===
+def calculate_optimal_leverage(rr):
+    if rr >= 4:
+        return 5
+    elif rr >= 3:
+        return 3
+    elif rr >= 2:
+        return 2
+    return 1
+
 def fetch_binance_ohlcv(symbol, interval="1h", limit=168):
     url = "https://api.binance.us/api/v3/klines"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
@@ -119,12 +128,14 @@ def detect_tct_setup(df):
     if po3:
         rr, conf = confidence(po3['entry'], po3['stop'], po3['target'])
         if rr >= MIN_RR_RATIO:
-            setups.append({"type": po3["type"], **po3, "rr": rr, "confidence": conf, "time": df.index[-1]})
+            leverage = calculate_optimal_leverage(rr)
+            setups.append({"type": po3["type"], **po3, "rr": rr, "confidence": conf, "leverage": leverage, "time": df.index[-1]})
 
     for model in models:
         rr, conf = confidence(model['entry'], model['stop'], model['target'])
         if rr >= MIN_RR_RATIO:
-            setups.append({"type": model["type"], **model, "rr": rr, "confidence": conf, "time": df.index[-1]})
+            leverage = calculate_optimal_leverage(rr)
+            setups.append({"type": model["type"], **model, "rr": rr, "confidence": conf, "leverage": leverage, "time": df.index[-1]})
 
     return setups
 
@@ -141,7 +152,7 @@ async def run_backtest():
                 valid_setups.extend(setups)
             print(f"\n🔍 {symbol} - {len(valid_setups)} valid setups")
             for s in valid_setups[-5:]:
-                print(f"{s['type']} {s['direction'].upper()} | RR: {s['rr']:.2f}:1 | Confidence: {s['confidence']*100:.0f}% | {s['time'].strftime('%m-%d %H:%M')}")
+                print(f"{s['type']} {s['direction'].upper()} | RR: {s['rr']:.2f}:1 | Confidence: {s['confidence']*100:.0f}% | Leverage: {s['leverage']}x | {s['time'].strftime('%m-%d %H:%M')}")
 
 async def run():
     if RUN_BACKTEST:
@@ -163,7 +174,7 @@ async def run():
                     for setup in setups:
                         key = f"{symbol}_{setup['direction']}_{setup['type']}"
                         if key not in active_alerts:
-                            await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"📣 TCT Alert - {symbol}\n{setup['type']} {setup['direction'].upper()}\nEntry: {setup['entry']:.2f}, Stop: {setup['stop']:.2f}, Target: {setup['target']:.2f}\nRR: {setup['rr']:.2f}:1 | Confidence: {setup['confidence']*100:.0f}%")
+                            await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"📣 TCT Alert - {symbol}\n{setup['type']} {setup['direction'].upper()}\nEntry: {setup['entry']:.2f}, Stop: {setup['stop']:.2f}, Target: {setup['target']:.2f}\nRR: {setup['rr']:.2f}:1 | Confidence: {setup['confidence']*100:.0f}% | Leverage: {setup['leverage']}x")
                             active_alerts[key] = setup
 
                 for key in list(active_alerts):
@@ -179,3 +190,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
