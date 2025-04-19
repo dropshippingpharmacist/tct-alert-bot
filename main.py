@@ -16,7 +16,7 @@ CHECK_INTERVAL = 180 if not FAST_MODE else 1  # in seconds
 RISK_PERCENTAGE = 1.0
 MIN_RR_RATIO = 2.0
 TIMEFRAMES = ["15m", "1h", "4h"]
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "FARTUSDT", "PEPEUSDT"]  # Expanded symbols list
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "FARTUSDT", "PEPEUSDT"]
 RUN_BACKTEST = "--backtest" in sys.argv
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -144,31 +144,31 @@ async def run():
     active_alerts = {}
     while True:
         for symbol in SYMBOLS:
-            df = fetch_binance_ohlcv(symbol)
-            live_price = fetch_binance_price(symbol)
-            if df is not None and live_price is not None:
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} Live Price: ${live_price:.2f}")
-                df = identify_ranges(df)
-                setups = detect_tct_setup(df)
+            for tf in ["15m", "1h", "4h"]:
+                df = fetch_binance_ohlcv(symbol, interval=tf)
+                live_price = fetch_binance_price(symbol)
+                if df is not None and live_price is not None:
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} ({tf}) Live Price: ${live_price:.2f}")
+                    df = identify_ranges(df)
+                    setups = detect_tct_setup(df)
 
-                if setups:
-                    for setup in setups:
-                        key = f"{symbol}_{setup['direction']}_{setup['type']}"
-                        if key not in active_alerts:
-                            await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"📣 TCT Alert - {symbol}\n{setup['type']} {setup['direction'].upper()}\nEntry: {setup['entry']:.2f}, Stop: {setup['stop']:.2f}, Target: {setup['target']:.2f}\nRR: {setup['rr']:.2f}:1 | Confidence: {setup['confidence']*100:.0f}% | Leverage: {setup['leverage']}x")
-                            active_alerts[key] = setup
+                    if setups:
+                        for setup in setups:
+                            key = f"{symbol}_{setup['direction']}_{setup['type']}_{tf}"
+                            if key not in active_alerts:
+                                await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"📣 TCT Alert - {symbol} ({tf})\n{setup['type']} {setup['direction'].upper()}\nEntry: {setup['entry']:.2f}, Stop: {setup['stop']:.2f}, Target: {setup['target']:.2f}\nRR: {setup['rr']:.2f}:1 | Confidence: {setup['confidence']*100:.0f}% | Leverage: {setup['leverage']}x")
+                                active_alerts[key] = setup
 
-                for key in list(active_alerts):
-                    sym, direction, _ = key.split("_")
-                    active = active_alerts[key]
-                    if live_price is not None:
-                        if (direction == "long" and live_price < active["stop"]) or \
-                           (direction == "short" and live_price > active["stop"]):
-                            await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"🚨 CANCEL - {sym} setup invalidated")
-                            del active_alerts[key]
+                    for key in list(active_alerts):
+                        sym, direction, _, tf_key = key.split("_")
+                        active = active_alerts[key]
+                        if live_price is not None:
+                            if (direction == "long" and live_price < active["stop"]) or \
+                               (direction == "short" and live_price > active["stop"]):
+                                await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=f"🚨 CANCEL - {sym} ({tf_key}) setup invalidated")
+                                del active_alerts[key]
 
         await asyncio.sleep(CHECK_INTERVAL)
 
 if __name__ == "__main__":
     asyncio.run(run())
-
