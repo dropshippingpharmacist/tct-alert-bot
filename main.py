@@ -110,8 +110,11 @@ def detect_tct_setup(df, htf_df):
     price_now = df['price'].iloc[-1]
     rr = abs(high - mid) / abs(mid - low)
     confidence = 0.6 + min(rr / 10, 0.4)
-    score = 0
 
+    if rr < MIN_RR_RATIO or confidence < 0.8:
+        return setups
+
+    score = 0
     if trend_filter(htf_df): score += 1
     if len(fvg) > 0: score += 1
     if len(obs) > 0: score += 1
@@ -157,3 +160,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
