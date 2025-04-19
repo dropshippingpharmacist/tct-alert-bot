@@ -88,11 +88,11 @@ def trend_filter(df):
 def detect_order_blocks(df):
     ob_list = []
     for i in range(1, len(df)-1):
-        if df['price'].iloc[i] > df['open'].iloc[i] and df['open'].iloc[i] < df['close'].iloc[i] < df['high'].iloc[i]:
-            if df['close'].iloc[i+1] > df['high'].iloc[i]:
+        if df['price'].iloc[i] > df['open'].iloc[i] and df['open'].iloc[i] < df['price'].iloc[i] < df['high'].iloc[i]:
+            if df['price'].iloc[i+1] > df['high'].iloc[i]:
                 ob_list.append((df.index[i], 'bullish'))
-        elif df['price'].iloc[i] < df['open'].iloc[i] and df['open'].iloc[i] > df['close'].iloc[i] > df['low'].iloc[i]:
-            if df['close'].iloc[i+1] < df['low'].iloc[i]:
+        elif df['price'].iloc[i] < df['open'].iloc[i] and df['open'].iloc[i] > df['price'].iloc[i] > df['low'].iloc[i]:
+            if df['price'].iloc[i+1] < df['low'].iloc[i]:
                 ob_list.append((df.index[i], 'bearish'))
     return ob_list
 
