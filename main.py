@@ -15,7 +15,7 @@ FAST_MODE = False
 CHECK_INTERVAL = 180 if not FAST_MODE else 1
 RISK_PERCENTAGE = 1.0
 MIN_RR_RATIO = 2.0
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "PEPEUSDT", "ADAUSDT", "AVAXUSDT", "MATICUSDT", "LTCUSDT", "BCHUSDT"]
+SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "PEPEUSDT"]
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
@@ -25,7 +25,7 @@ def calculate_optimal_leverage(rr):
     elif rr >= 2: return 2
     return 1
 
-def fetch_binance_ohlcv(symbol, interval="15m", limit=300):
+def fetch_binance_ohlcv(symbol, interval="1h", limit=200):
     url = "https://api.binance.us/api/v3/klines"
     params = {"symbol": symbol, "interval": interval, "limit": limit}
     r = requests.get(url, params=params)
@@ -118,7 +118,7 @@ def detect_tct_setup(df, htf_df):
     if rr >= 2.0: score += 1
     if any(df.index[-1] == i[0] for i in liquidity['above'] + liquidity['below']): score += 1
 
-    if score >= 2:
+    if score >= 3:
         direction = 'long' if price_now > mid else 'short'
         setups.append({"type": "TCT Combo", "direction": direction, "entry": mid, "stop": low if direction == 'long' else high, "target": high if direction == 'long' else low, "rr": rr, "confidence": confidence, "leverage": calculate_optimal_leverage(rr), "time": df.index[-1]})
 
@@ -129,8 +129,8 @@ async def run():
     active_alerts = {}
     while True:
         for symbol in SYMBOLS:
-            df = fetch_binance_ohlcv(symbol, interval="15m", limit=300)
-            htf_df = fetch_binance_ohlcv(symbol, interval="30m", limit=200)
+            df = fetch_binance_ohlcv(symbol, interval="15m")
+            htf_df = fetch_binance_ohlcv(symbol, interval="1h")
             live_price = fetch_binance_price(symbol)
             if df is not None and htf_df is not None and live_price is not None:
                 print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {symbol} Live Price: ${live_price:.2f}")
