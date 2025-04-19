@@ -115,7 +115,7 @@ def detect_tct_setup(df, htf_df):
     if trend_filter(htf_df): score += 1
     if len(fvg) > 0: score += 1
     if len(obs) > 0: score += 1
-    if rr >= 2.5: score += 1
+    if rr >= 2.0: score += 1
     if any(df.index[-1] == i[0] for i in liquidity['above'] + liquidity['below']): score += 1
 
     if score >= 3:
@@ -157,5 +157,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
-
 
