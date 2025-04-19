@@ -14,7 +14,7 @@ TELEGRAM_CHAT_ID = "5747777199"
 FAST_MODE = False
 CHECK_INTERVAL = 180 if not FAST_MODE else 1
 RISK_PERCENTAGE = 1.0
-MIN_RR_RATIO = 2.5  # Made more strict
+MIN_RR_RATIO = 2.0
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "PEPEUSDT", "ADAUSDT", "AVAXUSDT", "MATICUSDT", "LTCUSDT", "BCHUSDT"]
 
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
@@ -160,4 +160,3 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
-
