@@ -118,7 +118,7 @@ def detect_tct_setup(df, htf_df):
     if rr >= MIN_RR_RATIO: score += 1
     if any(df.index[-1] == i[0] for i in liquidity['above'] + liquidity['below']): score += 1
 
-    if score >= 2:
+    if score >= 3:
         direction = 'long' if price_now > mid else 'short'
         setups.append({"type": "TCT Combo", "direction": direction, "entry": mid, "stop": low if direction == 'long' else high, "target": high if direction == 'long' else low, "rr": rr, "confidence": confidence, "leverage": calculate_optimal_leverage(rr), "time": df.index[-1]})
 
@@ -157,4 +157,3 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
-
